@@ -9,6 +9,10 @@
 (defonce messages (atom[]))
 (defonce server (atom nil))
 
+(add-watch messages :save-to-disk
+  (fn [_ _ _ _]
+    (spit "message.edn" (pr-str @messages))))
+
 (c/defroutes app
   (c/GET "/" request
    (h/html [:html
@@ -27,6 +31,12 @@
       (r/redirect "/"))))
 
 (defn -main []
+  (try
+    (let [messages-str (slurp "message.edn")
+          messages-vec (read-string messages-str)]
+      (reset! messages messages-vec))
+    (catch Exception _))
+  
   (when @server
     (.stop @server))
   (reset! server (j/run-jetty (p/wrap-params app) {:port 8080 :join? false})))
